@@ -121,10 +121,28 @@ try {
     $SessionCount = ($RDSServersInFarm | Measure-Object -Property session_count -Sum).Sum
     Write-log -Path $LogFilePath -Message "We have $SessionCount total sessions on $($ChoosenHorizonFarm.rds_server_count) RDS-Servers in Farm $FarmName2AutoScale" -Component "Calculation" -Type Info
 
+    #Calculate users
     $OptimizedRDSServerCount = [math]::ceiling($SessionCount/$AvgNumberofUserperRDSServer2ScaleUp)
+    
+    #Calculate load
+    If($OptimizedRDSServerCount -eq $ChoosenHorizonFarm.rds_server_count){
+        $LoadIndexOK = $false # assume farm is overloaded
+        for($i=0; $i -lt $ChoosenHorizonFarm.rds_server_count; $i++){
+            Write-log -Path $LogFilePath -Message "Server $($RDSServersInFarm[$i].name) ($($RDSServersInFarm[$i].details.state)) has $($RDSServersInFarm[$i].session_count) session(s) and an overall load of $($RDSServersInFarm[$i].load_index)" -Component "Calculation" -Type Info
+            if($RDSServersInFarm[$i].load_index -lt 80){
+                $LoadIndexOK = $true # correcting assumption
+            }
+        }
+        if($LoadIndexOK -eq $false){
+            $OptimizedRDSServerCount++ # correcting suggestion by adding one additional server
+            Write-log -Path $LogFilePath -Message "Adding one additional RDS-Server due to high load situation" -Component "Calculation" -Type Info
+        }
+    }
+    
+    #Min/Max correction
     If($OptimizedRDSServerCount -gt $MaxNumberofRDSServers){$OptimizedRDSServerCount = $MaxNumberofRDSServers}
     If($OptimizedRDSServerCount -lt $MinNumberofRDSServers){$OptimizedRDSServerCount = $MinNumberofRDSServers}
-    Write-log -Path $LogFilePath -Message "According defined $AvgNumberofUserperRDSServer2ScaleUp Users per RDS the calculated optimum is $OptimizedRDSServerCount RDS-Server(s); Min:$MinNumberofRDSServers Max:$MaxNumberofRDSServers" -Component "Calculation" -Type Info
+    Write-log -Path $LogFilePath -Message "According defined $AvgNumberofUserperRDSServer2ScaleUp Users per RDS and overall Load-Index the calculated optimum is $OptimizedRDSServerCount RDS-Server(s); Min:$MinNumberofRDSServers Max:$MaxNumberofRDSServers" -Component "Calculation" -Type Info
 
 } catch {
     Write-Error ($_ | Out-String)
