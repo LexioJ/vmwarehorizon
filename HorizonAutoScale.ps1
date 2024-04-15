@@ -157,15 +157,15 @@ If($OptimizedRDSServerCount -ne $ChoosenHorizonFarm.rds_server_count){
     try {
         #Receive CustomObject
         $ChoosenHorizonFarmSettings = Invoke-RestMethod -Method Get -uri "$url/rest/inventory/v5/farms/$($ChoosenHorizonFarm.id)" -ContentType "application/json" -Headers (Get-HorizonHeader -accessToken $accessToken)
+        If($OptimizedRDSServerCount -ne $ChoosenHorizonFarmSettings.automated_farm_settings.pattern_naming_settings.max_number_of_rds_servers){
+            #Change Farm Size to OptimizedRDSServerCount
+            Write-log -Path $LogFilePath -Message "Attempt to change max_number_of_rds_servers from $($ChoosenHorizonFarmSettings.automated_farm_settings.pattern_naming_settings.max_number_of_rds_servers) to $OptimizedRDSServerCount RDS-Servers" -Component "Farm Update" -Type Info
+            $ChoosenHorizonFarmSettings.automated_farm_settings.pattern_naming_settings.max_number_of_rds_servers = $OptimizedRDSServerCount
     
-        #Change Farm Size to OptimizedRDSServerCount
-        Write-log -Path $LogFilePath -Message "Attempt to change max_number_of_rds_servers from $($ChoosenHorizonFarmSettings.automated_farm_settings.pattern_naming_settings.max_number_of_rds_servers) to $OptimizedRDSServerCount RDS-Servers" -Component "Farm Update" -Type Info
-        $ChoosenHorizonFarmSettings.automated_farm_settings.pattern_naming_settings.max_number_of_rds_servers = $OptimizedRDSServerCount
-
-        #Update Farm Configuration
-        Invoke-RestMethod -Method Put -uri "$url/rest/inventory/v3/farms/$($ChoosenHorizonFarm.id)" -ContentType "application/json" -Headers (Get-HorizonHeader -accessToken $accessToken) -Body ($ChoosenHorizonFarmSettings | ConvertTo-Json -Depth 10)
-        Write-log -Path $LogFilePath -Message "Changed!" -Component "Farm Update" -Type Info
-
+            #Update Farm Configuration
+            Invoke-RestMethod -Method Put -uri "$url/rest/inventory/v3/farms/$($ChoosenHorizonFarm.id)" -ContentType "application/json" -Headers (Get-HorizonHeader -accessToken $accessToken) -Body ($ChoosenHorizonFarmSettings | ConvertTo-Json -Depth 10)
+            Write-log -Path $LogFilePath -Message "Changed!" -Component "Farm Update" -Type Info
+        }
     } catch {
         Write-Error ($_ | Out-String)
         Write-Log -Path $LogFilePath -Message ($_ | Out-String) -Component $MyInvocation.MyCommand.Name -Type Error
