@@ -126,7 +126,7 @@ try {
     $OptimizedRDSServerCount = [math]::ceiling($SessionCount/$AvgNumberofUserperRDSServerThreshold)
     
     #Calculate load
-    If($OptimizedRDSServerCount -eq $ChoosenHorizonFarm.rds_server_count){
+    If($OptimizedRDSServerCount -le $ChoosenHorizonFarm.rds_server_count){
         $LoadIndexOK = $false # assume farm is overloaded
         for($i=0; $i -lt $ChoosenHorizonFarm.rds_server_count; $i++){
             Write-log -Path $LogFilePath -Message "Server $($RDSServersInFarm[$i].name) ($($RDSServersInFarm[$i].details.state)) has $($RDSServersInFarm[$i].session_count) session(s) and an overall load of $($RDSServersInFarm[$i].load_index)" -Component "Calculation" -Type Info
